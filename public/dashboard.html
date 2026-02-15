@@ -4,96 +4,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PotholeScan | Dashboard</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
-    <link rel="stylesheet" href="css/style.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
-        rel="stylesheet">
+    <title>PotholeScan — Municipal Dashboard</title>
+    <meta name="description"
+        content="Municipal dashboard for monitoring and managing pothole reports. View severity maps, statistics, and manage repair priorities.">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <!-- App CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+
+
 </head>
 
-<body class="dashboard-body">
+<body>
+
+    <!-- ── Navbar ──────────────────────────────────────────────── -->
     <nav class="navbar">
-        <div class="nav-brand">🚧 Municipal Dashboard</div>
-        <div class="nav-links">
-            <span id="usernameDisplay">Admin</span>
-            <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🚧</div>
+            PotholeScan
+        </a>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <ul class="navbar-links">
+                <li><a href="/dashboard.html" class="active">📊 Dashboard</a></li>
+            </ul>
+            <div id="navUser"></div>
         </div>
     </nav>
 
-    <div class="dashboard-layout">
-        <aside class="dashboard-sidebar">
-            <div class="sidebar-header">
-                <h3>Overview</h3>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="label">Total Reports</span>
-                    <span class="value" id="statTotal">--</span>
-                </div>
-                <div class="stat-card">
-                    <span class="label">Pending</span>
-                    <span class="value warn" id="statPending">--</span>
-                </div>
-            </div>
+    <!-- ── Dashboard Layout ───────────────────────────────────── -->
+    <main class="main-content">
+        <div class="dashboard-layout">
 
-            <div class="filters">
-                <label>Filter Status</label>
-                <div class="filter-group" id="statusFilters">
-                    <button class="filter-chip active" data-status="all">All</button>
-                    <button class="filter-chip" data-status="pending">Pending</button>
-                    <button class="filter-chip" data-status="in-progress">In Progress</button>
-                    <button class="filter-chip" data-status="resolved">Resolved</button>
+            <!-- ── Sidebar ───────────────────────────────────── -->
+            <aside class="dashboard-sidebar">
+                <div class="sidebar-header">
+                    <h2>🏛️ Municipal Dashboard</h2>
+                    <p>Monitor & manage pothole reports</p>
                 </div>
-            </div>
 
-            <div class="report-list-container">
-                <div id="reportsList" class="reports-list">
-                    <!-- Cards injected here -->
+                <!-- Stats -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">Total Reports</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statRecent">0</div>
+                        <div class="stat-label">Last 7 Days</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statPending">0</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statResolved">0</div>
+                        <div class="stat-label">Resolved</div>
+                    </div>
                 </div>
+
+                <!-- Severity Chart -->
+                <div class="chart-container" id="chartContainer">
+                    <h4>Severity Distribution</h4>
+                    <div class="severity-chart" id="severityChart">
+                        <div class="chart-bar small" style="height: 0%">
+                            <span class="chart-bar-value">0</span>
+                            <span class="chart-bar-label">Small</span>
+                        </div>
+                        <div class="chart-bar medium" style="height: 0%">
+                            <span class="chart-bar-value">0</span>
+                            <span class="chart-bar-label">Medium</span>
+                        </div>
+                        <div class="chart-bar severe" style="height: 0%">
+                            <span class="chart-bar-value">0</span>
+                            <span class="chart-bar-label">Severe</span>
+                        </div>
+                        <div class="chart-bar unknown" style="height: 0%">
+                            <span class="chart-bar-value">0</span>
+                            <span class="chart-bar-label">Unknown</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-section">
+                    <h4>Filter by Severity</h4>
+                    <div class="filter-group" id="severityFilters">
+                        <button class="filter-chip active" data-severity="all">All</button>
+                        <button class="filter-chip" data-severity="small">🟡 Small</button>
+                        <button class="filter-chip" data-severity="medium">🟠 Medium</button>
+                        <button class="filter-chip" data-severity="severe">🔴 Severe</button>
+                    </div>
+                </div>
+                <div class="filters-section">
+                    <h4>Filter by Status</h4>
+                    <div class="filter-group" id="statusFilters">
+                        <button class="filter-chip active" data-status="all">All</button>
+                        <button class="filter-chip" data-status="pending">⏳ Pending</button>
+                        <button class="filter-chip" data-status="in-progress">🔧 In Progress</button>
+                        <button class="filter-chip" data-status="resolved">✅ Resolved</button>
+                    </div>
+                </div>
+
+                <!-- Reports List -->
+                <div class="reports-list" id="reportsList">
+                    <div class="empty-state">
+                        <span class="empty-icon">📭</span>
+                        <h3>No reports yet</h3>
+                        <p>Reports will appear here once citizens start reporting potholes.</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ── Map ───────────────────────────────────────── -->
+            <div class="dashboard-map">
+                <div id="dashboardMap" class="map-container-full"></div>
+                <button class="btn btn-secondary btn-sm refresh-btn" onclick="loadData()">🔄 Refresh</button>
             </div>
-        </aside>
+        </div>
+    </main>
 
-        <main class="dashboard-main">
-            <div id="map" class="map-full"></div>
-        </main>
-    </div>
-
-    <!-- Modals -->
+    <!-- ── Progress Modal ─────────────────────────────────────── -->
     <div class="modal-overlay" id="progressModal">
         <div class="modal">
             <div class="modal-header">
-                <h3>Update Progress</h3>
+                <h3>📋 Update Progress</h3>
                 <button class="modal-close" onclick="closeModal('progressModal')">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body progress-form">
                 <input type="hidden" id="progressReportId">
-                <div class="form-group">
-                    <label>Current Status: <span id="progressCurrentStatus"></span></label>
-                </div>
-                <div class="form-group">
-                    <label>⏱️ Estimated Hours to Fix</label>
-                    <input type="number" id="estimatedHours" class="form-input" placeholder="e.g. 4">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>⏱️ Estimated Hours to Fix</label>
+                        <input type="number" id="estimatedHours" class="form-input" min="0.5" step="0.5"
+                            placeholder="e.g. 4">
+                    </div>
+                    <div class="form-group">
+                        <label>📌 Current Status</label>
+                        <div id="progressCurrentStatus"
+                            style="padding: 0.75rem; color: var(--text-muted); font-size: 0.9rem;"></div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>📝 Progress Note</label>
                     <textarea id="progressNote" class="form-textarea" rows="3"
-                        placeholder="Status update..."></textarea>
+                        placeholder="What's the current status? e.g. 'Crew dispatched, materials procured'"></textarea>
                 </div>
                 <div id="progressLogArea" style="display:none;">
-                    <label>Previous Notes:</label>
-                    <div id="progressLogContent"></div>
+                    <label
+                        style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem; display: block;">Previous
+                        Notes:</label>
+                    <div class="progress-log" id="progressLogContent"></div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('progressModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="submitProgress()">Save Progress</button>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('progressModal')">Cancel</button>
+                <button class="btn btn-primary btn-sm" onclick="submitProgress()">💾 Save Progress</button>
             </div>
         </div>
     </div>
 
+    <!-- ── Resolution Modal ───────────────────────────────────── -->
     <div class="modal-overlay" id="resolveModal">
         <div class="modal">
             <div class="modal-header">
@@ -103,18 +176,23 @@
             <div class="modal-body">
                 <input type="hidden" id="resolveReportId">
 
+                <!-- Step 1: Upload proof photo -->
                 <div class="resolve-step">
                     <h4><span class="step-num">1</span> Upload Surrounding Area Photo (Proof)</h4>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        Take a photo of the repaired road & surroundings to verify it matches the reported location.
+                    </p>
                     <div class="resolve-upload-zone" id="resolveUploadZone"
                         onclick="document.getElementById('resolvePhotoInput').click()">
                         <span style="font-size: 2rem;">📷</span>
                         <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">Click to upload
-                            resolution/surrounding photo</p>
+                            resolution photo</p>
                     </div>
                     <input type="file" id="resolvePhotoInput" accept="image/*" style="display:none"
                         onchange="handleResolvePhoto(this)">
                 </div>
 
+                <!-- Step 2: GPS verification -->
                 <div class="resolve-step">
                     <h4><span class="step-num">2</span> GPS Location Verification</h4>
                     <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
@@ -125,6 +203,7 @@
                     <div id="gpsResult" style="margin-top: 0.75rem; display: none;"></div>
                 </div>
 
+                <!-- Step 3: Upload & verify -->
                 <div class="resolve-step" id="uploadStep" style="display:none;">
                     <h4><span class="step-num">3</span> Verify & Compare</h4>
                     <button class="btn btn-primary btn-sm" onclick="uploadResolution()" id="uploadResolveBtn">🔍 Upload
@@ -132,6 +211,7 @@
                     <div id="similarityStatus"></div>
                 </div>
 
+                <!-- Step 4: Comparison result -->
                 <div id="comparisonResult" style="display:none;">
                     <h4 style="margin-bottom: 0.5rem;">📊 Verification Results</h4>
                     <div class="photo-comparison" id="photoComparison"></div>
@@ -140,22 +220,23 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('resolveModal')">Cancel</button>
-                <button class="btn btn-primary" id="finalizeBtn" onclick="finalizeResolution()" style="display:none;">✅
-                    Confirm Resolution</button>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('resolveModal')">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="finalizeBtn" onclick="finalizeResolution()"
+                    style="display:none;">✅ Confirm Resolution</button>
             </div>
         </div>
     </div>
 
-    <div id="toastContainer" class="toast-container"></div>
+    <!-- ── Toast Container ────────────────────────────────────── -->
+    <div class="toast-container" id="toastContainer"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
-    <script src="ml/similarity.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/dashboard.js"></script>
+    <!-- ── Scripts ────────────────────────────────────────────── -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
+    <script src="/ml/similarity.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/dashboard.js"></script>
 </body>
 
 </html>

@@ -11,18 +11,14 @@
         rel="stylesheet">
 </head>
 
-<body style="display:flex; align-items:center; justify-content:center;">
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
     <div class="card" style="width:100%; max-width:400px;">
         <h2 style="text-align:center; margin-bottom:1.5rem;">Join PotholeScan</h2>
         <form id="registerForm">
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" id="username" class="form-input" required>
+            <div class="form-group"><label>Username</label><input type="text" id="username" class="form-input" required>
             </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="password" class="form-input" required>
-            </div>
+            <div class="form-group"><label>Password</label><input type="password" id="password" class="form-input"
+                    required></div>
             <div class="form-group">
                 <label>Role</label>
                 <select id="role" class="form-input">
@@ -36,19 +32,12 @@
             Already have an account? <a href="login.html" style="color:var(--accent-primary);">Login</a>
         </p>
     </div>
-
     <script src="js/auth.js"></script>
     <script>
         document.getElementById('registerForm').onsubmit = async (e) => {
             e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-            const r = document.getElementById('role').value;
-            try {
-                await Auth.register(u, p, r);
-            } catch (err) {
-                alert(err.message);
-            }
+            try { await Auth.register(document.getElementById('username').value, document.getElementById('password').value, document.getElementById('role').value); }
+            catch (err) { alert(err.message); }
         };
     </script>
 </body>

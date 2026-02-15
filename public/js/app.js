@@ -1,3 +1,7 @@
+// ═══════════════════════════════════════════════════════════════
+// PotholeScan — User Report Page
+// ═══════════════════════════════════════════════════════════════
+
 let selectedFile = null;
 let analysisResult = null;
 
@@ -8,36 +12,49 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMyReports();
 });
 
+// ─── Upload Handler ─────────────────────────────────────────────
 function initUpload() {
     const zone = document.getElementById('uploadZone');
     const input = document.getElementById('photoInput');
 
-    zone.onclick = () => input.click();
-    input.onchange = (e) => handleFile(e.target.files[0]);
+    zone.addEventListener('click', () => input.click());
+    input.addEventListener('change', (e) => {
+        if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
 
-    zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('dragover'); };
-    zone.ondragleave = () => zone.classList.remove('dragover');
-    zone.ondrop = (e) => {
+    zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', (e) => {
         e.preventDefault();
         zone.classList.remove('dragover');
-        handleFile(e.dataTransfer.files[0]);
-    };
+        if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
 }
 
 function handleFile(file) {
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file || !file.type.startsWith('image/')) {
+        showToast('Please select an image file', 'error');
+        return;
+    }
     selectedFile = file;
 
     const reader = new FileReader();
     reader.onload = (e) => {
         const img = document.getElementById('uploadPreview');
         img.src = e.target.result;
-        document.getElementById('uploadZone').classList.add('has-image');
-        runAnalysis(img);
+        const zone = document.getElementById('uploadZone');
+        zone.classList.add('has-image');
+
+        // Wait for image to load before analyzing
+        img.onload = () => runAnalysis(img);
     };
     reader.readAsDataURL(file);
 }
 
+// ─── AI Analysis ────────────────────────────────────────────────
 async function runAnalysis(imgElement) {
     const spinner = document.getElementById('analyzingSpinner');
     const panel = document.getElementById('analysisPanel');
@@ -45,57 +62,82 @@ async function runAnalysis(imgElement) {
     spinner.style.display = 'flex';
     panel.classList.remove('visible');
 
-    // Wait for image load
-    await new Promise(r => setTimeout(r, 500)); // simulate delay
-    if (!imgElement.complete) await new Promise(r => imgElement.onload = r);
-
     try {
-        // Use the ML model
         analysisResult = await PotholeModel.analyze(imgElement);
         displayAnalysis(analysisResult);
     } catch (e) {
-        console.error(e);
-        showToast('Analysis failed, but you can still submit', 'error');
+        console.error('Analysis error:', e);
+        showToast('AI analysis failed, you can still submit manually', 'error');
     }
+
     spinner.style.display = 'none';
+    checkSubmitReady();
 }
 
 function displayAnalysis(res) {
     const panel = document.getElementById('analysisPanel');
     panel.classList.add('visible');
 
-    document.getElementById('resultDetected').textContent = res.isPothole ? 'YES' : 'NO';
-    document.getElementById('resultConfidence').textContent = Math.round(res.confidence * 100) + '%';
-    document.getElementById('confidenceBar').style.width = (res.confidence * 100) + '%';
-    document.getElementById('resultSeverity').textContent = res.severity.toUpperCase();
-    document.getElementById('resultSize').textContent = res.estimatedSize;
+    document.getElementById('resultDetected').textContent = res.isPothole ? '✅ YES' : '❌ NO';
+    document.getElementById('resultDetected').style.color = res.isPothole ? '#22c55e' : '#ef4444';
 
-    checkSubmit();
+    const confPct = Math.round(res.confidence * 100);
+    document.getElementById('resultConfidence').textContent = confPct + '%';
+    document.getElementById('confidenceBar').style.width = confPct + '%';
+    document.getElementById('confidenceBar').style.background =
+        confPct >= 70 ? '#22c55e' : confPct >= 40 ? '#f59e0b' : '#ef4444';
+
+    const sevEl = document.getElementById('resultSeverity');
+    sevEl.textContent = (res.severity || 'unknown').toUpperCase();
+    const sevColors = { high: '#ef4444', severe: '#ef4444', medium: '#f59e0b', low: '#22c55e', none: '#64748b' };
+    sevEl.style.color = sevColors[res.severity] || '#94a3b8';
+
+    document.getElementById('resultSize').textContent = res.estimatedSize || 'N/A';
 }
 
+// ─── GPS ────────────────────────────────────────────────────────
 function initGeo() {
-    document.getElementById('geoBtn').onclick = () => {
-        if (!navigator.geolocation) return showToast('Geolocation not supported', 'error');
-        navigator.geolocation.getCurrentPosition(pos => {
-            document.getElementById('latInput').value = pos.coords.latitude.toFixed(6);
-            document.getElementById('lngInput').value = pos.coords.longitude.toFixed(6);
-            checkSubmit();
-        }, err => showToast(err.message, 'error'));
-    };
+    document.getElementById('geoBtn').addEventListener('click', () => {
+        if (!navigator.geolocation) {
+            showToast('Geolocation not supported', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('geoBtn');
+        btn.textContent = '⏳ Getting...';
+        btn.disabled = true;
+
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                document.getElementById('latInput').value = pos.coords.latitude.toFixed(6);
+                document.getElementById('lngInput').value = pos.coords.longitude.toFixed(6);
+                btn.textContent = '✅ Got GPS';
+                btn.disabled = false;
+                checkSubmitReady();
+            },
+            err => {
+                showToast('GPS Error: ' + err.message, 'error');
+                btn.textContent = 'Get GPS';
+                btn.disabled = false;
+            },
+            { enableHighAccuracy: true }
+        );
+    });
 }
 
-function checkSubmit() {
+// ─── Submit Logic ───────────────────────────────────────────────
+function checkSubmitReady() {
     const hasFile = !!selectedFile;
-    const hasLoc = !!document.getElementById('latInput').value;
+    const hasLoc = !!(document.getElementById('latInput').value && document.getElementById('lngInput').value);
     document.getElementById('submitBtn').disabled = !(hasFile && hasLoc);
 }
 
 function initForm() {
-    document.getElementById('reportForm').onsubmit = async (e) => {
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
-        btn.textContent = 'Submitting...';
+        btn.textContent = '⏳ Submitting...';
 
         const formData = new FormData();
         formData.append('photo', selectedFile);
@@ -105,55 +147,89 @@ function initForm() {
         formData.append('road_type', document.getElementById('roadType').value);
 
         if (analysisResult) {
-            formData.append('severity', analysisResult.severity);
-            formData.append('confidence', analysisResult.confidence);
+            formData.append('severity', analysisResult.severity || 'unknown');
+            formData.append('confidence', analysisResult.confidence || 0);
             formData.append('is_pothole', analysisResult.isPothole ? 1 : 0);
-            formData.append('estimated_size', analysisResult.estimatedSize);
+            formData.append('estimated_size', analysisResult.estimatedSize || '');
         }
 
         try {
             const res = await fetch('/api/reports', { method: 'POST', body: formData });
-            if (!res.ok) throw new Error('Failed');
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Submission failed');
+            }
             document.getElementById('successOverlay').style.display = 'flex';
-        } catch (e) {
-            showToast('Submission failed', 'error');
+        } catch (err) {
+            showToast(err.message, 'error');
             btn.disabled = false;
+            btn.textContent = '🚀 Submit Report';
         }
-    };
+    });
 }
 
+// ─── My Reports ─────────────────────────────────────────────────
 async function loadMyReports() {
     try {
         const res = await fetch('/api/reports/my');
-        if (!res.ok) return;
+        if (!res.ok) return; // Not logged in or no reports
+
         const reports = await res.json();
-        if (reports.length > 0) {
-            document.getElementById('myReportsSection').style.display = 'block';
-            const list = document.getElementById('myReportsList');
-            list.innerHTML = reports.map(r => `
-                <div class="report-card">
-                    <div class="report-card-body">
-                        <img src="/uploads/${r.photo}" class="report-card-thumb">
-                        <div class="report-card-info">
-                            <p><strong>${r.description || 'Report'}</strong></p>
-                            <p>${new Date(r.created_at).toLocaleDateString()}</p>
-                            <div class="report-card-meta">
-                                <span class="status-badge ${r.status}">${r.status}</span>
-                                ${r.trust_level ? `<span class="trust-badge trust-${r.trust_level}">${r.trust_level} Trust</span>` : ''}
-                            </div>
-                            ${r.trust_level === 'low' ? '<p style="color:var(--severity-severe); font-size:0.75rem">⚠️ Low Trust: Resolution details mismatched</p>' : ''}
-                        </div>
+        if (reports.length === 0) return;
+
+        document.getElementById('myReportsSection').style.display = 'block';
+        const list = document.getElementById('myReportsList');
+
+        list.innerHTML = reports.map(r => {
+            // Build badges
+            let badges = `<span class="status-badge ${r.status}">${r.status}</span>`;
+
+            if (r.severity && r.severity !== 'unknown') {
+                badges += `<span class="severity-badge ${r.severity}">${r.severity}</span>`;
+            }
+
+            if (r.status === 'resolved' && r.trust_level) {
+                badges += `<span class="trust-badge ${r.trust_level}">${r.trust_level.toUpperCase()} TRUST</span>`;
+            }
+
+            // Trust warning for low trust
+            let trustWarning = '';
+            if (r.status === 'resolved' && r.trust_level === 'low') {
+                trustWarning = `
+                    <div class="trust-warning">
+                        ⚠️ This resolution has low trustworthiness. The verification photos had low similarity 
+                        (${Math.round(r.similarity_score || 0)}%) or the location distance was high (${r.distance_m || 0}m). 
+                        The repair quality may need further inspection.
+                    </div>`;
+            }
+
+            return `
+            <div class="my-report-card">
+                <div class="report-card-body">
+                    <img src="/uploads/${r.photo}" class="report-card-thumb" 
+                         onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%231a2236%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2230%22>🕳️</text></svg>'">
+                    <div class="report-card-info">
+                        <p><strong>${r.description || 'Report'}</strong></p>
+                        <p class="report-time">📅 ${new Date(r.created_at + 'Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        <p class="report-time">📍 ${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}</p>
+                        <div class="my-report-badges">${badges}</div>
+                        ${trustWarning}
                     </div>
                 </div>
-            `).join('');
-        }
-    } catch (e) { }
+            </div>
+            `;
+        }).join('');
+    } catch (e) {
+        // Silently fail if not logged in
+    }
 }
 
+// ─── Toast ──────────────────────────────────────────────────────
 function showToast(msg, type = 'info') {
+    const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = msg;
-    document.getElementById('toastContainer').appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+    container.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 4000);
 }

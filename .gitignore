@@ -1,0 +1,6 @@
+node_modules/
+pothole.db
+pothole.db-shm
+pothole.db-wal
+uploads/
+*.log
