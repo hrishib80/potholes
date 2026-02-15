@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PotholeScan | Report Potholes</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">🚧 PotholeScan</div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Report</a>
+            <a href="dashboard.html" id="dashLink" style="display:none">Dashboard</a>
+            <div id="authLinks">
+                <a href="login.html" class="btn btn-secondary">Login</a>
+                <a href="register.html" class="btn btn-primary">Sign Up</a>
+            </div>
+            <div id="userMenu" style="display:none">
+                <span id="usernameDisplay">User</span>
+                <button id="logoutBtn" class="btn btn-sm btn-outline">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <h1>Report Potholes Instantly</h1>
+            <p>Help us make roads safer. Upload a photo, we'll verify it with AI.</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="report-section">
+            <div class="card">
+                <h2>📸 New Report</h2>
+                <form id="reportForm">
+                    <div class="upload-zone" id="uploadZone">
+                        <span class="icon">☁️</span>
+                        <p>Click or Drag to Upload Photo</p>
+                        <input type="file" id="photoInput" accept="image/*" hidden>
+                        <img id="uploadPreview" class="preview-img">
+                    </div>
+
+                    <div id="analyzingSpinner" class="spinner-container">
+                        <div class="spinner"></div>
+                        <p>Analyzing with AI...</p>
+                    </div>
+
+                    <div id="analysisPanel" class="analysis-panel">
+                        <h3>🤖 AI Analysis</h3>
+                        <div class="stat-grid">
+                            <div class="stat-item">
+                                <label>Pothole Detected</label>
+                                <span id="resultDetected" class="value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>Confidence</label>
+                                <span id="resultConfidence" class="value">--</span>
+                                <div class="progress-bar">
+                                    <div id="confidenceBar" class="fill"></div>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <label>Severity</label>
+                                <span id="resultSeverity" class="value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>Est. Size</label>
+                                <span id="resultSize" class="value">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📍 Location</label>
+                        <div class="location-input-group">
+                            <input type="text" id="latInput" placeholder="Lat" readonly required>
+                            <input type="text" id="lngInput" placeholder="Lng" readonly required>
+                            <button type="button" id="geoBtn" class="btn btn-secondary">Get GPS</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📝 Description</label>
+                        <textarea id="description" rows="3" placeholder="Additional details..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🛣️ Road Type</label>
+                        <select id="roadType">
+                            <option value="residential">Residential</option>
+                            <option value="highway">Highway</option>
+                            <option value="main_road">Main Road</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn btn-primary btn-block" disabled>🚀 Submit
+                        Report</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="myReportsSection" style="display:none; margin-top: 2rem;">
+            <h2>My Reports</h2>
+            <div id="myReportsList" class="report-grid"></div>
+        </section>
+    </main>
+
+    <div id="toastContainer" class="toast-container"></div>
+    <div id="successOverlay" class="overlay">
+        <div class="success-card">
+            <div class="check-icon">✅</div>
+            <h2>Report Submitted!</h2>
+            <p>Thank you for your contribution.</p>
+            <button onclick="location.reload()" class="btn btn-primary">Submit Another</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <!-- Use specific version/module if needed, standard cdn is fine -->
+    <script src="ml/model.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

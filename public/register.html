@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PotholeScan | Register</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body style="display:flex; align-items:center; justify-content:center;">
+    <div class="card" style="width:100%; max-width:400px;">
+        <h2 style="text-align:center; margin-bottom:1.5rem;">Join PotholeScan</h2>
+        <form id="registerForm">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select id="role" class="form-input">
+                    <option value="citizen">Citizen</option>
+                    <option value="municipal">Municipal Authority</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+        </form>
+        <p style="text-align:center; margin-top:1rem; font-size:0.9rem; color:var(--text-secondary);">
+            Already have an account? <a href="login.html" style="color:var(--accent-primary);">Login</a>
+        </p>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        document.getElementById('registerForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            const r = document.getElementById('role').value;
+            try {
+                await Auth.register(u, p, r);
+            } catch (err) {
+                alert(err.message);
+            }
+        };
+    </script>
+</body>
+
+</html>
